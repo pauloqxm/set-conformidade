@@ -1,7 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthProvider'
 import { useWorkspace } from '../data/useWorkspace'
 import { projectLogo } from '../components/Brand'
-import { areaLabel, isClosed, needsAttention, projectName } from '../lib/domain'
+import { areaLabel, isClosed, needsAttention, projectName, roleLabel, roleOf } from '../lib/domain'
 import type { ChecklistItem, ProcessRow } from '../lib/types'
 
 function itemsOf(items: ChecklistItem[], processId: string) {
@@ -10,6 +11,8 @@ function itemsOf(items: ChecklistItem[], processId: string) {
 
 export function DashboardPage() {
   const navigate = useNavigate()
+  const { profile } = useAuth()
+  const role = roleOf(profile)
   const { data, isLoading, error } = useWorkspace()
   if (isLoading) return <p className="muted">Carregando o painel...</p>
   if (error || !data) return <p className="alert">{error instanceof Error ? error.message : 'Não foi possível carregar.'}</p>
@@ -41,7 +44,10 @@ export function DashboardPage() {
       <div className="heading">
         <div>
           <p className="eyebrow">Painel</p>
-          <h1>Visão geral dos processos</h1>
+          <h1>
+            {role === 'admin' ? 'Visão geral dos processos' : role === 'manager' ? `Visão da ${profile?.area || 'coordenação'}` : 'Meus processos e pendências'}
+          </h1>
+          <p className="muted">{role === 'user' ? 'Você visualiza somente os processos e as pendências atribuídos diretamente a você.' : roleLabel(role)}</p>
         </div>
       </div>
       <section className="metrics">

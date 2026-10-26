@@ -292,10 +292,27 @@ th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spa
   .pending, .approval, .loginScene { grid-template-columns: 1fr; }
   .loginBrandCopy h1 { font-size: 46px; }
 }
+.roleChip { display: inline-block; margin-right: 8px; border-radius: 99px; padding: 4px 8px; background: #e7f6ec; color: #176b3a; font-size: 12px; }
+.roleChip.admin { background: #fff4df; color: #8a5b0b; }
+.roleChip.user { background: #edf3fb; color: #3f6394; }
+.accessGrid, .manualIntro { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.approvalUser { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.approvalUser .actions { justify-content: flex-end; }
+.manualSearch { min-width: 240px; }
+.manualToc { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 16px; }
+.manualToc a { text-decoration: none; color: #1d5c38; background: white; border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 700; }
+.manualSection ol { display: grid; gap: 10px; padding-left: 18px; }
+.manualSection li p { margin: 4px 0 0; color: #4d6458; }
+.manualHead { display: flex; gap: 12px; align-items: flex-start; }
+.manualHead > span { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: #e7f6ec; color: #176b3a; font-weight: 800; flex: none; }
+.manualHead b { margin-left: auto; color: #6d7f74; font-size: 12px; }
+.manualSection img { width: 100%; border-radius: 14px; border: 1px solid var(--line); margin-top: 12px; }
+
 @media (max-width: 760px) {
   .shell { display: block; }
   .side { position: relative; height: auto; width: 100%; }
   .content header, .headerIdentity { align-items: flex-start; flex-direction: column; }
   .headerGovText strong { white-space: normal; }
-  .metrics, .filters, .grid, .pending { grid-template-columns: 1fr; }
+  .metrics, .filters, .grid, .pending, .accessGrid, .manualIntro { grid-template-columns: 1fr; }
+  .approvalUser { flex-direction: column; }
 }

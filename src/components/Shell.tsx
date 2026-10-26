@@ -1,16 +1,17 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { useWorkspace } from '../data/useWorkspace'
-import { AREAS, needsAttention, personName } from '../lib/domain'
+import { AREAS, canManage, needsAttention, personName, roleLabel, roleOf } from '../lib/domain'
 import { AppIcon, CheckMark } from './Brand'
 
-const links = [
-  { to: '/', label: 'Painel', end: true },
-  { to: '/processos', label: 'Cadastro de processos', end: false },
-  { to: '/pendencias', label: 'Pendências', end: false },
-  { to: '/solicitacoes', label: 'Minhas solicitações', end: false },
-  { to: '/checklists', label: 'Checklists', end: false },
-  { to: '/analises', label: 'Análises', end: false },
+const baseLinks = [
+  { to: '/', label: 'Painel', end: true, manage: false },
+  { to: '/processos', label: 'Cadastro de processos', end: false, manage: true },
+  { to: '/pendencias', label: 'Pendências', end: false, manage: false },
+  { to: '/solicitacoes', label: 'Minhas solicitações', end: false, manage: false },
+  { to: '/checklists', label: 'Checklists', end: false, manage: true },
+  { to: '/analises', label: 'Análises', end: false, manage: false },
+  { to: '/manual', label: 'Manual de uso', end: false, manage: false },
 ]
 
 function initials(name: string) {
@@ -27,7 +28,10 @@ export function Shell() {
     (row) => row.assigned_to === session?.user.id && row.status !== 'Concluída' && row.status !== 'Cancelada',
   ).length
   const name = personName(profile?.full_name, session?.user.email)
-  const areas = profile?.is_admin ? AREAS : AREAS.filter((area) => area.id === profile?.area)
+  const role = roleOf(profile)
+  const manage = canManage(profile)
+  const links = baseLinks.filter((link) => manage || !link.manage)
+  const areas = role === 'admin' ? AREAS : role === 'manager' ? AREAS.filter((area) => area.id === profile?.area) : []
 
   if (!profile?.active) {
     return (
@@ -74,8 +78,8 @@ export function Shell() {
           ))}
           {profile.is_admin ? <NavLink to="/acessos">Acessos</NavLink> : null}
         </nav>
-        <div className="navSep" />
-        <div className="sideLabel">Coordenações</div>
+        {areas.length > 0 ? <div className="navSep" /> : null}
+        {areas.length > 0 ? <div className="sideLabel">Coordenações</div> : null}
         <nav className="areaList">
           {areas.map((area) => (
             <NavLink
@@ -121,8 +125,7 @@ export function Shell() {
             <div className="userMeta">
               <b>{name}</b>
               <span>
-                {profile.area}
-                {profile.is_admin ? ' · Administrador' : ''}
+                {profile.area} · {roleLabel(role)}
               </span>
             </div>
             <button className="logout" type="button" onClick={() => void signOut()}>

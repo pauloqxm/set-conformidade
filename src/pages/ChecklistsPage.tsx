@@ -1,7 +1,12 @@
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthProvider'
 import { useWorkspace } from '../data/useWorkspace'
+import { canManage } from '../lib/domain'
 
 export function ChecklistsPage() {
+  const { profile } = useAuth()
   const { data, isLoading, error } = useWorkspace()
+  if (!canManage(profile)) return <Navigate to="/" replace />
   if (isLoading) return <p className="muted">Carregando checklists...</p>
   if (error || !data) return <p className="alert">{error instanceof Error ? error.message : 'Não foi possível carregar.'}</p>
 

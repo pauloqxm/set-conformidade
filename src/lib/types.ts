@@ -2,12 +2,15 @@ export type Profile = {
   user_id: string
   area: string
   is_admin: boolean
+  is_manager: boolean
   active: boolean
   full_name: string | null
   email: string | null
   approved_at: string | null
   approved_by: string | null
 }
+
+export type AccessRole = 'user' | 'manager' | 'admin'
 
 export type ProcessRow = {
   id: string

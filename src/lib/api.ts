@@ -1,6 +1,7 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import type {
+  AccessRole,
   AssignableUser,
   Assignment,
   ChecklistItem,
@@ -33,14 +34,33 @@ async function pages<T>(
 const ITEM_COLUMNS =
   'id,process_id,ordinal,code,section,criterion,responsible,basis,suite_page,finding,analysis,recommendation,notes,status,resolution_area,technician_name,deadline_start,deadline_end,procedure_adopted,pending_observation,validated,validated_at,validated_by,extra_drive_url,updated_at'
 
+const PROFILE_COLUMNS = 'user_id,area,is_admin,is_manager,active,full_name,email,approved_at,approved_by'
+const PROFILE_COLUMNS_LEGACY = 'user_id,area,is_admin,active,full_name,email,approved_at,approved_by'
+
+function asProfile(row: Omit<Profile, 'is_manager'> & { is_manager?: boolean | null }): Profile {
+  return { ...row, is_manager: !!row.is_manager }
+}
+
 export async function loadProfile(userId: string) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('user_id,area,is_admin,active,full_name,email,approved_at,approved_by')
-    .eq('user_id', userId)
-    .maybeSingle()
-  fail(error)
-  return (data as Profile | null) ?? null
+  const first = await supabase.from('profiles').select(PROFILE_COLUMNS).eq('user_id', userId).maybeSingle()
+  if (!first.error) return first.data ? asProfile(first.data as Profile) : null
+  if (!/is_manager/i.test(first.error.message)) fail(first.error)
+  const second = await supabase.from('profiles').select(PROFILE_COLUMNS_LEGACY).eq('user_id', userId).maybeSingle()
+  fail(second.error)
+  if (!second.data) return null
+  const legacy = second.data as Omit<Profile, 'is_manager'>
+  return asProfile({ ...legacy, is_manager: !legacy.is_admin })
+}
+
+export async function loadProfiles() {
+  const first = await supabase.from('profiles').select(PROFILE_COLUMNS).order('full_name', { ascending: true })
+  if (!first.error) return ((first.data ?? []) as Profile[]).map(asProfile)
+  if (!/is_manager/i.test(first.error.message)) fail(first.error)
+  const second = await supabase.from('profiles').select(PROFILE_COLUMNS_LEGACY).order('full_name', { ascending: true })
+  fail(second.error)
+  return ((second.data ?? []) as Omit<Profile, 'is_manager'>[]).map((row) =>
+    asProfile({ ...row, is_manager: !row.is_admin }),
+  )
 }
 
 export async function loadWorkspace(): Promise<Workspace> {
@@ -64,23 +84,66 @@ export async function loadWorkspace(): Promise<Workspace> {
   return { processes, items, templates, modules, assignments }
 }
 
-export async function loadInactiveProfiles() {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('user_id,area,is_admin,active,full_name,email,approved_at,approved_by')
-    .eq('active', false)
-    .order('email', { ascending: true })
-  fail(error)
-  return (data ?? []) as Profile[]
-}
-
-export async function approveAccess(userId: string, area: string, isAdmin: boolean) {
-  const { error } = await supabase.rpc('approve_access_request', {
+export async function approveAccess(userId: string, area: string, role: AccessRole) {
+  const payload = {
     p_user_id: userId,
     p_area: area,
-    p_is_admin: isAdmin,
+    p_is_admin: role === 'admin',
+    p_is_manager: role === 'manager',
+  }
+  const first = await supabase.rpc('approve_access_request', payload)
+  if (!first.error) return
+  if (!missingFunction(first.error)) throw new Error(first.error.message)
+  const second = await supabase.rpc('approve_access_request', {
+    p_user_id: userId,
+    p_area: area,
+    p_is_admin: role === 'admin',
   })
-  fail(error)
+  fail(second.error)
+  const updated = await supabase
+    .from('profiles')
+    .update({ is_admin: role === 'admin', is_manager: role === 'manager' })
+    .eq('user_id', userId)
+  if (updated.error && role === 'manager') throw new Error(updated.error.message)
+}
+
+export async function rejectAccess(userId: string) {
+  const first = await supabase.rpc('reject_access_request', { p_user_id: userId })
+  if (!first.error) return
+  if (!missingFunction(first.error)) throw new Error(first.error.message)
+  const updated = await supabase.from('profiles').update({ active: false }).eq('user_id', userId)
+  fail(updated.error)
+}
+
+export async function updateUserProfile(input: {
+  userId: string
+  fullName: string
+  area: string
+  role: AccessRole
+  active: boolean
+}) {
+  const payload = {
+    p_user_id: input.userId,
+    p_full_name: input.fullName,
+    p_area: input.area,
+    p_is_admin: input.role === 'admin',
+    p_is_manager: input.role === 'manager',
+    p_active: input.active,
+  }
+  const first = await supabase.rpc('admin_update_user_profile', payload)
+  if (!first.error) return
+  if (!missingFunction(first.error)) throw new Error(first.error.message)
+  const updated = await supabase
+    .from('profiles')
+    .update({
+      full_name: input.fullName,
+      area: input.area,
+      is_admin: input.role === 'admin',
+      is_manager: input.role === 'manager',
+      active: input.active,
+    })
+    .eq('user_id', input.userId)
+  fail(updated.error)
 }
 
 export async function listAssignable(processId: string) {

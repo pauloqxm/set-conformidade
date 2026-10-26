@@ -4,11 +4,13 @@ import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { useWorkspace } from '../data/useWorkspace'
 import { listAssignable, saveAssignment, saveItem } from '../lib/api'
-import { AREAS, ITEM_STATUSES, pendingKind, pendingLabel, projectName } from '../lib/domain'
+import { AREAS, ITEM_STATUSES, canManage, pendingKind, pendingLabel, projectName, roleOf } from '../lib/domain'
 import type { AssignableUser, ChecklistItem, ItemDraft } from '../lib/types'
 
 export function PendingPage() {
-  const { session } = useAuth()
+  const { session, profile } = useAuth()
+  const role = roleOf(profile)
+  const manage = canManage(profile)
   const { data, isLoading, error } = useWorkspace()
   const [params, setParams] = useSearchParams()
   const project = params.get('projeto') ?? ''
@@ -42,7 +44,14 @@ export function PendingPage() {
       <div className="heading">
         <div>
           <p className="eyebrow">Pendências</p>
-          <h1>Itens que ainda exigem ação</h1>
+          <h1>{role === 'user' ? 'Minhas pendências atribuídas' : 'Pendências dos processos'}</h1>
+          <p className="muted">
+            {role === 'user'
+              ? 'Somente ocorrências encaminhadas diretamente para sua responsabilidade.'
+              : role === 'manager'
+                ? `Escopo de gestão: ${profile?.area || 'sua área'}.`
+                : 'Visão administrativa de todas as áreas.'}
+          </p>
         </div>
       </div>
       {project ? (
@@ -55,14 +64,16 @@ export function PendingPage() {
       ) : null}
       <div className="filters">
         <input value={text} onChange={(event) => setText(event.target.value)} placeholder="Buscar NUP, projeto ou ocorrência" />
-        <select value={area} onChange={(event) => setArea(event.target.value)}>
-          <option value="">Todas as coordenações</option>
-          {AREAS.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.id}
-            </option>
-          ))}
-        </select>
+        {manage ? (
+          <select value={area} onChange={(event) => setArea(event.target.value)}>
+            <option value="">Todas as coordenações</option>
+            {AREAS.filter((item) => role === 'admin' || item.id === profile?.area).map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.id}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <select value={kind} onChange={(event) => setKind(event.target.value)}>
           <option value="">Em aberto</option>
           <option value="aberto">Não conforme</option>
@@ -103,6 +114,7 @@ export function PendingPage() {
         <ItemDialog
           item={current}
           userId={session.user.id}
+          canManage={manage}
           onClose={() => setCurrent(null)}
         />
       ) : null}
@@ -110,7 +122,17 @@ export function PendingPage() {
   )
 }
 
-function ItemDialog({ item, userId, onClose }: { item: ChecklistItem; userId: string; onClose: () => void }) {
+function ItemDialog({
+  item,
+  userId,
+  canManage: allowManage,
+  onClose,
+}: {
+  item: ChecklistItem
+  userId: string
+  canManage: boolean
+  onClose: () => void
+}) {
   const client = useQueryClient()
   const { data } = useWorkspace()
   const process = data?.processes.find((row) => row.id === item.process_id)
@@ -140,7 +162,7 @@ function ItemDialog({ item, userId, onClose }: { item: ChecklistItem; userId: st
       deadline_end: String(form.get('deadline_end') ?? ''),
       procedure_adopted: String(form.get('procedure_adopted') ?? ''),
       pending_observation: String(form.get('pending_observation') ?? ''),
-      validated: form.get('validated') === 'on',
+      validated: allowManage ? form.get('validated') === 'on' : !!item.validated,
       extra_drive_url: String(form.get('extra_drive_url') ?? ''),
       expected_updated_at: item.updated_at,
     }
@@ -148,7 +170,7 @@ function ItemDialog({ item, userId, onClose }: { item: ChecklistItem; userId: st
     setMessage('')
     try {
       await saveItem(item.id, draft, userId)
-      const assignedTo = String(form.get('assigned_to') ?? '')
+      const assignedTo = allowManage ? String(form.get('assigned_to') ?? '') : ''
       if (assignedTo) {
         const current = data?.assignments.find(
           (row) => row.checklist_item_id === item.id && row.status !== 'Cancelada' && row.assigned_to === assignedTo,
@@ -225,25 +247,31 @@ function ItemDialog({ item, userId, onClose }: { item: ChecklistItem; userId: st
             Link complementar do Drive
             <input name="extra_drive_url" defaultValue={item.extra_drive_url ?? ''} />
           </label>
-          <label className="wide">
-            Atribuir a
-            <select name="assigned_to" defaultValue="" onFocus={() => void ensurePeople()}>
-              <option value="">Não alterar</option>
-              {(people ?? []).map((person) => (
-                <option key={person.user_id} value={person.user_id}>
-                  {person.full_name || person.email} · {person.area}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="wide">
-            Orientação da solicitação
-            <input name="assignment_note" />
-          </label>
+          {allowManage ? (
+          <>
+            <label className="wide">
+              Atribuir a
+              <select name="assigned_to" defaultValue="" onFocus={() => void ensurePeople()}>
+                <option value="">Não alterar</option>
+                {(people ?? []).map((person) => (
+                  <option key={person.user_id} value={person.user_id}>
+                    {person.full_name || person.email} · {person.area}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="wide">
+              Orientação da solicitação
+              <input name="assignment_note" />
+            </label>
+          </>
+        ) : null}
+          {allowManage ? (
           <label className="check wide">
             <input name="validated" type="checkbox" defaultChecked={!!item.validated} />
             Item regular e validado
           </label>
+          ) : null}
         </div>
         {message ? <p className="alert">{message}</p> : null}
         <div className="actions">

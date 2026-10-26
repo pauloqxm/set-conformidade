@@ -67,3 +67,21 @@ export function personName(name: string | null | undefined, email: string | null
   if (clean) return clean
   return email ?? 'Usuário'
 }
+
+export type Role = 'admin' | 'manager' | 'user'
+
+export function roleOf(profile: { is_admin?: boolean | null; is_manager?: boolean | null } | null | undefined): Role {
+  if (profile?.is_admin) return 'admin'
+  if (profile?.is_manager) return 'manager'
+  return 'user'
+}
+
+export function roleLabel(role: Role) {
+  if (role === 'admin') return 'Administrador'
+  if (role === 'manager') return 'Gestor da área'
+  return 'Usuário da área'
+}
+
+export function canManage(profile: { is_admin?: boolean | null; is_manager?: boolean | null } | null | undefined) {
+  return roleOf(profile) !== 'user'
+}

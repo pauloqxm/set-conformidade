@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { Navigate } from 'react-router-dom'
 import { z } from 'zod'
 import { useAuth } from '../auth/AuthProvider'
 import { ProcessTable } from './DashboardPage'
 import { useWorkspace } from '../data/useWorkspace'
 import { saveProcess } from '../lib/api'
-import { AREAS, folderId } from '../lib/domain'
+import { AREAS, canManage, folderId } from '../lib/domain'
 
 const schema = z.object({
   area: z.string().min(2),
@@ -27,6 +28,7 @@ export function ProcessesPage() {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
 
+  if (!canManage(profile)) return <Navigate to="/" replace />
   if (isLoading) return <p className="muted">Carregando processos...</p>
   if (error || !data) return <p className="alert">{error instanceof Error ? error.message : 'Não foi possível carregar.'}</p>
 

@@ -43,5 +43,8 @@ export function projectLogo(name: string) {
   if (normalized.includes('sebrae') && (normalized.includes('qualificação') || normalized.includes('qualificacao'))) {
     return { src: '/qualificacao-sebrae.png', alt: 'Qualificação Sebrae' }
   }
+  if (normalized.includes('sine') && normalized.includes('idt')) {
+    return { src: '/idt-logo.png', alt: 'Instituto de Desenvolvimento do Trabalho - IDT' }
+  }
   return null
 }

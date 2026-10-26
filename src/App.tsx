@@ -6,6 +6,7 @@ import { AnalysisPage } from './pages/AnalysisPage'
 import { ChecklistsPage } from './pages/ChecklistsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
+import { ManualPage } from './pages/ManualPage'
 import { PendingPage } from './pages/PendingPage'
 import { ProcessesPage } from './pages/ProcessesPage'
 import { RequestsPage } from './pages/RequestsPage'
@@ -28,6 +29,7 @@ export function App() {
         <Route path="analises" element={<AnalysisPage />} />
         <Route path="checklists" element={<ChecklistsPage />} />
         <Route path="solicitacoes" element={<RequestsPage />} />
+        <Route path="manual" element={<ManualPage />} />
         <Route path="acessos" element={<AccessPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
