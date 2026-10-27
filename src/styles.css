@@ -286,9 +286,59 @@ th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spa
 .loginStatus { margin-top: 16px; padding-top: 12px; border-top: 1px solid #edf1ed; color: #758579; font-size: 12px; display: flex; align-items: center; gap: 8px; }
 .approval { grid-template-columns: 1.4fr .8fr auto auto; align-items: end; }
 
+.painel .heading { align-items: center; }
+.scopeChip { border: 1px solid #d7e7de; background: #f4faf6; color: #147047; border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 800; }
+.scopeChip.admin { background: #eef8f2; }
+.dashMetrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.dashMetric { display: flex; gap: 12px; align-items: center; background: white; border: 1px solid #e3eee7; border-radius: 16px; padding: 14px 16px; box-shadow: 0 8px 20px #143c2608; }
+.dashMetric > span { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; font-weight: 800; flex: none; }
+.dashMetric small { display: block; color: #6d7f74; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.dashMetric strong { display: block; font-family: "Barlow Condensed", Inter, sans-serif; font-size: 32px; line-height: 1; color: #174b33; }
+.dashMetric em { display: block; margin-top: 2px; color: #8aa093; font-size: 11px; font-style: normal; }
+.dashMetric.green > span, .dashMetric.emerald > span { background: #e7f8ef; color: #0d9a61; }
+.dashMetric.orange > span { background: #fff1e8; color: #ff6e22; }
+.dashMetric.blue > span { background: #e8f6fd; color: #2f95d6; }
+.dashMetric.gold > span { background: #fff6df; color: #d39a16; }
+.dashCharts { display: grid; grid-template-columns: 1.45fr .95fr 1fr; gap: 14px; margin-bottom: 14px; }
+.dashExtra { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.dashCard { background: white; border: 1px solid #dfe9e3; border-radius: 16px; box-shadow: 0 9px 24px #18402e10; padding: 14px 16px 16px; min-width: 0; }
+.dashCard header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+.dashCard h2 { margin: 0; font-family: Inter, sans-serif; font-size: 14px; color: #124733; }
+.dashCard header p { margin: 3px 0 0; color: #7b8f84; font-size: 12px; }
+.dashCard header button, .dashCard header > span:not(.scopeChip) { border: 1px solid #d7e7de; background: white; color: #147047; border-radius: 10px; padding: 7px 10px; font-size: 11px; font-weight: 800; }
+.stackBar { display: flex; height: 30px; border-radius: 8px; overflow: hidden; background: #eef4f0; }
+.stackBar i { display: grid; place-items: center; color: white; font-style: normal; font-size: 11px; font-weight: 800; }
+.stackBar .green { background: linear-gradient(90deg, #0a8f58, #0da269); }
+.stackBar .blue { background: linear-gradient(90deg, #52b6ee, #61c6f3); }
+.stackBar .orange { background: linear-gradient(90deg, #ff762c, #ff671c); }
+.stackBar .yellow { background: linear-gradient(90deg, #f4bd2e, #fac841); color: #214c37; }
+.stackLegend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 14px; color: #687f73; font-size: 11px; }
+.stackLegend span { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.stackLegend i, .areaLegend i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.donutWrap { display: flex; gap: 14px; align-items: center; }
+.donut { width: 132px; height: 132px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.donut > div { width: 78px; height: 78px; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.donut strong { font-size: 22px; color: #174b33; }
+.donut small { color: #7b8f84; }
+.areaLegend { display: grid; gap: 4px; flex: 1; min-width: 0; }
+.areaLegend button, .hbar button { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; width: 100%; border: 0; background: transparent; text-align: left; padding: 3px 0; color: #365446; font-weight: 700; }
+.areaLegend b { color: #6d7f74; font-size: 12px; }
+.areaLegend em { font-style: normal; color: #174b33; }
+.hbar { display: grid; gap: 8px; }
+.hbar button { grid-template-columns: 72px 1fr auto; }
+.hbar i, .rank i { display: block; height: 8px; background: #eef3ef; border-radius: 99px; overflow: hidden; }
+.hbar b, .rank b { display: block; height: 100%; border-radius: 99px; }
+.hbar .orange, .rank .orange { background: #ff6e22; }
+.hbar .blue, .rank .blue { background: #45b6ef; }
+.rank .green { background: #12a15f; }
+.rank { display: grid; gap: 10px; }
+.rank > div { display: grid; grid-template-columns: minmax(90px, 150px) 1fr auto; gap: 8px; align-items: center; }
+.rank span { color: #365446; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 @media (max-width: 1100px) {
   .headerApp { display: none; }
-  .metrics, .cards { grid-template-columns: 1fr 1fr; }
+  .metrics, .cards, .dashMetrics, .dashCharts, .dashExtra { grid-template-columns: 1fr 1fr; }
+  .dashMetrics { grid-template-columns: 1fr 1fr; }
   .pending, .approval, .loginScene { grid-template-columns: 1fr; }
   .loginBrandCopy h1 { font-size: 46px; }
 }
@@ -313,6 +363,6 @@ th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spa
   .side { position: relative; height: auto; width: 100%; }
   .content header, .headerIdentity { align-items: flex-start; flex-direction: column; }
   .headerGovText strong { white-space: normal; }
-  .metrics, .filters, .grid, .pending, .accessGrid, .manualIntro { grid-template-columns: 1fr; }
+  .metrics, .filters, .grid, .pending, .accessGrid, .manualIntro, .dashMetrics, .dashCharts, .dashExtra, .donutWrap { grid-template-columns: 1fr; }
   .approvalUser { flex-direction: column; }
 }
