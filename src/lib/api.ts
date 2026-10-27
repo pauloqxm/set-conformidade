@@ -202,6 +202,58 @@ export async function saveItem(itemId: string, draft: ItemDraft, userId: string)
   }
 }
 
+export type DriveSource = {
+  id: string
+  drive_folder_url: string | null
+  drive_folder_id: string | null
+  area: string | null
+  read_status: string | null
+  detected_instrument_title: string | null
+  detected_project: string | null
+  detected_kind: string | null
+}
+
+export type DriveRead = {
+  ok?: boolean
+  error?: string
+  detected?: { area?: string; project?: string; kind?: string; instrument_title?: string }
+  root?: { name?: string }
+}
+
+export async function driveStatus() {
+  const { data, error } = await supabase.functions.invoke('google-drive-status', { body: {} })
+  if (error) throw new Error(error.message)
+  const row = data as { connected?: boolean; email?: string | null }
+  return { connected: !!row?.connected, email: row?.email ?? null }
+}
+
+export async function connectDrive() {
+  const { data, error } = await supabase.functions.invoke('google-drive-connect', { body: {} })
+  if (error) throw new Error(error.message)
+  const url = (data as { authorization_url?: string })?.authorization_url
+  if (!url) throw new Error('O servidor não devolveu a autorização do Google Drive.')
+  return url
+}
+
+export async function readDriveFolder(url: string) {
+  const { data, error } = await supabase.functions.invoke('google-drive-read-folder', { body: { folder_url: url } })
+  if (error) throw new Error(error.message)
+  const row = data as DriveRead
+  if (!row?.ok) throw new Error(row?.error || 'Não foi possível ler a pasta.')
+  return row
+}
+
+export async function loadDriveSources() {
+  const { data, error } = await supabase.from('drive_sources').select('id,drive_folder_url,drive_folder_id,area,read_status,detected_instrument_title,detected_project,detected_kind').order('updated_at', { ascending: false })
+  fail(error)
+  return (data ?? []) as DriveSource[]
+}
+
+export async function deleteDriveSource(id: string) {
+  const { error } = await supabase.rpc('delete_drive_source_record', { p_source_id: id })
+  fail(error)
+}
+
 export type ProcessInput = {
   id?: string
   area: string
@@ -215,6 +267,7 @@ export type ProcessInput = {
   drive_folder_id: string | null
   responsible_name: string
   responsible_email: string
+  drive_source_id?: string | null
 }
 
 export async function saveProcess(input: ProcessInput, userId: string) {
@@ -230,6 +283,7 @@ export async function saveProcess(input: ProcessInput, userId: string) {
     drive_folder_id: input.drive_folder_id,
     responsible_name: input.responsible_name,
     responsible_email: input.responsible_email,
+    ...(input.drive_source_id ? { drive_source_id: input.drive_source_id } : {}),
     updated_at: new Date().toISOString(),
   }
   if (input.id) {

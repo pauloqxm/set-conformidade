@@ -22,6 +22,7 @@ export type ProcessRow = {
   instrument_title: string | null
   drive_folder_url: string | null
   drive_folder_id: string | null
+  drive_source_id?: string | null
   status: string | null
   created_by: string | null
   process_stage: string | null
