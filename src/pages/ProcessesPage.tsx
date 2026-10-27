@@ -4,16 +4,20 @@ import { Navigate, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { useAuth } from '../auth/AuthProvider'
 import { useWorkspace } from '../data/useWorkspace'
+import { cleanStageTitle } from '../lib/checklistDocx'
 import {
   connectDrive,
   deleteDriveSource,
   driveStatus,
   loadDriveSources,
+  loadModulePreview,
   readDriveFolder,
   saveProcess,
+  type ChecklistMatch,
+  type DriveRead,
   type DriveSource,
 } from '../lib/api'
-import { AREAS, canManage, folderId, projectName } from '../lib/domain'
+import { COORDINATIONS, canManage, folderId, projectName } from '../lib/domain'
 import type { ProcessRow } from '../lib/types'
 
 const schema = z.object({
@@ -28,7 +32,12 @@ const schema = z.object({
   responsible_name: z.string().trim().min(2, 'Informe o responsável.'),
 })
 
-type Draft = z.infer<typeof schema> & { id?: string; drive_source_id?: string | null }
+type Draft = z.infer<typeof schema> & {
+  id?: string
+  drive_source_id?: string | null
+  responsible_email: string
+  matches?: ChecklistMatch[]
+}
 
 export function ProcessesPage() {
   const { session, profile } = useAuth()
@@ -60,9 +69,10 @@ export function ProcessesPage() {
       process_stage: process.process_stage || '',
       drive_folder_url: process.drive_folder_url || '',
       responsible_name: process.responsible_name || profile?.full_name || '',
+      responsible_email: process.responsible_email || session?.user.email || '',
       drive_source_id: process.drive_source_id ?? null,
     })
-  }, [params, data, profile?.area, profile?.full_name, setParams])
+  }, [params, data, profile?.area, profile?.full_name, session?.user.email, setParams])
 
   if (!canManage(profile)) return <Navigate to="/" replace />
   if (isLoading) return <p className="muted">Carregando processos...</p>
@@ -114,8 +124,9 @@ export function ProcessesPage() {
     setBusy('ler')
     try {
       const read = await readDriveFolder(url)
+      const refreshed = await loadDriveSources()
       await client.invalidateQueries({ queryKey: ['drive-sources'] })
-      const source = (sources.data ?? []).find((item) => item.drive_folder_id === id)
+      const source = refreshed.find((item) => item.drive_folder_id === id || item.id === read.source_id)
       const existing = data?.processes.find((process) => process.drive_folder_id === id || process.drive_source_id === source?.id)
       const detected = read.detected ?? {}
       setDraft({
@@ -124,12 +135,14 @@ export function ProcessesPage() {
         project_name: existing?.project_name || detected.project || '',
         kind: existing?.kind || detected.kind || '',
         instrument_title: existing?.instrument_title || detected.instrument_title || read.root?.name || '',
-        nup: existing?.nup || '',
+        nup: existing?.nup || nupFromRead(read),
         object: existing?.object || '',
-        process_stage: existing?.process_stage || '',
+        process_stage: existing?.process_stage || stageFromRead(read),
         drive_folder_url: url,
         responsible_name: existing?.responsible_name || profile?.full_name || '',
-        drive_source_id: source?.id ?? existing?.drive_source_id ?? null,
+        responsible_email: existing?.responsible_email || session?.user.email || '',
+        drive_source_id: source?.id ?? existing?.drive_source_id ?? read.source_id ?? null,
+        matches: matchesFromRead(read),
       })
       form.reset()
     } catch (err) {
@@ -152,6 +165,7 @@ export function ProcessesPage() {
       process_stage: process?.process_stage || '',
       drive_folder_url: row.url || '',
       responsible_name: process?.responsible_name || profile?.full_name || '',
+      responsible_email: process?.responsible_email || session?.user.email || '',
       drive_source_id: row.sourceId,
     })
   }
@@ -229,7 +243,7 @@ export function ProcessesPage() {
             {busy === 'ler' ? 'Lendo pasta...' : 'Vincular e ler pasta'}
           </button>
         </form>
-        {message ? <p className="alert">{message}</p> : null}
+        {message ? <p className={message.startsWith('Processo salvo') || message.startsWith('Pasta sincronizada') ? 'oknote' : 'alert'}>{message}</p> : null}
       </section>
       <section className="linkedPanel">
         <div className="linkedHead">
@@ -284,13 +298,15 @@ export function ProcessesPage() {
                   id: draft.id,
                   drive_folder_id: id,
                   drive_source_id: draft.drive_source_id,
-                  responsible_email: session?.user.email ?? '',
+                  responsible_email: draft.responsible_email || session?.user.email || '',
+                  matches: draft.matches,
                 },
                 session?.user.id ?? '',
               )
               await client.invalidateQueries({ queryKey: ['workspace'] })
+              const linked = draft.matches?.length ?? 0
               setDraft(null)
-              setMessage('')
+              setMessage(linked ? `Processo salvo. ${linked} checklist(s) vinculado(s) à estrutura encontrada.` : 'Processo salvo. Nenhum checklist correspondente foi localizado ainda.')
             } catch (err) {
               setMessage(err instanceof Error ? err.message : 'Não foi possível salvar.')
             } finally {
@@ -367,16 +383,47 @@ function ProcessDialog({
   onClose: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
+  const [preview, setPreview] = useState<string>('')
+  const [items, setItems] = useState<{ id: string; item_code: string | null; verification: string | null; responsible: string | null; basis: string | null }[]>([])
+  const [previewError, setPreviewError] = useState('')
+  const nodes = [draft.area, draft.project_name, draft.instrument_title, draft.process_stage].filter(Boolean)
+  const sectors = COORDINATIONS.some((area) => area.id === draft.area) ? COORDINATIONS : [{ id: draft.area, name: draft.area }, ...COORDINATIONS]
+  const matches = draft.matches ?? []
+
+  async function showItems(moduleId: string) {
+    if (preview === moduleId) {
+      setPreview('')
+      return
+    }
+    setPreview(moduleId)
+    setPreviewError('')
+    try {
+      setItems(await loadModulePreview(moduleId))
+    } catch (error) {
+      setItems([])
+      setPreviewError(error instanceof Error ? error.message : 'Não foi possível carregar os itens.')
+    }
+  }
+
   return (
     <div className="overlay">
-      <form className="dialog" onSubmit={(event) => void onSubmit(event)}>
-        <h2>{draft.id ? 'Editar processo' : 'Conferir cadastro'}</h2>
-        <p className="muted">Confira os dados identificados na pasta antes de salvar.</p>
+      <form className="dialog processDialog" onSubmit={(event) => void onSubmit(event)}>
+        <div className="hierarchyBox">
+          <div className="hierarchyTitle">Estrutura identificada no Drive</div>
+          <div className="hierarchyFlow">
+            {nodes.map((node, index) => (
+              <span key={`${node}-${index}`} className="hierarchyStep">
+                {index > 0 ? <span className="hierarchyArrow">›</span> : null}
+                <span className="hierarchyNode">{node}</span>
+              </span>
+            ))}
+          </div>
+        </div>
         <div className="grid">
           <label>
-            Coordenação
-            <select name="area" defaultValue={draft.area}>
-              {AREAS.map((area) => (
+            Coordenação / setor
+            <select name="area" defaultValue={draft.area} required>
+              {sectors.map((area) => (
                 <option key={area.id} value={area.id}>{area.id}</option>
               ))}
             </select>
@@ -390,35 +437,108 @@ function ProcessDialog({
             <input name="kind" defaultValue={draft.kind} required />
           </label>
           <label>
-            Identificação
+            Identificação do instrumento
             <input name="instrument_title" defaultValue={draft.instrument_title} required />
           </label>
           <label>
-            NUP
-            <input name="nup" defaultValue={draft.nup} />
+            Etapa / tipo de processo
+            <input name="process_stage" defaultValue={draft.process_stage} placeholder="Ex.: CELEBRAÇÃO" />
           </label>
           <label>
-            Etapa
-            <input name="process_stage" defaultValue={draft.process_stage} />
+            NUP / nº do processo
+            <input name="nup" defaultValue={draft.nup} placeholder="Identificado pelo nome do PDF" />
+            <span className="readonlyHint">Quando o nome do PDF contém 17 dígitos, o NUP é formatado automaticamente. Você pode corrigir se necessário.</span>
+          </label>
+          <label>
+            Responsável pelo upload
+            <input name="responsible_name" defaultValue={draft.responsible_name} readOnly required />
+            <span className="readonlyHint">{draft.responsible_email}</span>
           </label>
           <label className="wide">
             Objeto
-            <textarea name="object" rows={3} defaultValue={draft.object} />
+            <textarea name="object" rows={3} defaultValue={draft.object} placeholder="Informe ou ajuste o objeto do processo" />
           </label>
           <label className="wide">
-            Link da pasta do Drive
-            <input name="drive_folder_url" defaultValue={draft.drive_folder_url} />
-          </label>
-          <label className="wide">
-            Responsável
-            <input name="responsible_name" defaultValue={draft.responsible_name} required />
+            Link da pasta principal
+            <input name="drive_folder_url" defaultValue={draft.drive_folder_url} required />
+            <span className="readonlyHint">O link pode ser corrigido aqui antes de salvar.</span>
           </label>
         </div>
+        {draft.matches && matches.length === 0 ? (
+          <div className="checkMatchBox warn">
+            <strong>Nenhum checklist correspondente localizado</strong>
+            <span>Você pode salvar o cadastro mesmo assim. Quando as chaves do checklist forem ajustadas, sincronize a pasta novamente.</span>
+          </div>
+        ) : null}
+        {matches.length > 0 ? (
+          <div className="checkMatchBox">
+            <strong>{matches.length === 1 ? 'Checklist correspondente localizado' : 'Checklists correspondentes localizados'}</strong>
+            {matches.map((match) => (
+              <div className="checkMatch" key={`${match.module_id}-${match.folder_id}`}>
+                <div>
+                  <b>{match.title || 'Checklist'}</b>
+                  <small>
+                    {match.template_name || 'Checklist cadastrado'}
+                    {match.folder_name ? ` · Pasta: ${match.folder_name}` : ''}
+                  </small>
+                </div>
+                <button type="button" onClick={() => void showItems(match.module_id)}>Ver itens</button>
+              </div>
+            ))}
+            {preview ? (
+              <div className="matchPreview">
+                {previewError ? <p className="alert">{previewError}</p> : null}
+                {items.map((item) => (
+                  <p key={item.id}>
+                    <b>{item.item_code}</b> {item.verification}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <div className="actions">
           <button className="ghost" type="button" onClick={onClose}>Cancelar</button>
-          <button className="button" disabled={busy}>{busy ? 'Salvando...' : 'Salvar processo'}</button>
+          <button className="button" disabled={busy}>{busy ? 'Salvando...' : 'Salvar processo e vincular checklist'}</button>
         </div>
       </form>
     </div>
   )
+}
+
+function matchesFromRead(read: DriveRead): ChecklistMatch[] {
+  return (read.matched_modules ?? [])
+    .filter((item) => item.module_id && item.template_id)
+    .map((item) => ({
+      template_id: item.template_id || '',
+      template_name: item.template_name || '',
+      module_id: item.module_id || '',
+      title: cleanStageTitle(item.module_title),
+      folder_id: item.folder_id || '',
+      folder_name: item.folder_name || '',
+      folder_path: item.folder_path || '',
+    }))
+}
+
+function stageFromRead(read: DriveRead) {
+  const names = [...new Set((read.matched_modules ?? []).map((item) => item.folder_name).filter(Boolean))]
+  if (names.length) return names.join(' / ')
+  const folders = (read.items ?? []).filter((item) => item.is_folder).map((item) => item.name || '')
+  return folders.find((name) => /CELEBRA|ADITIV|PRESTA|FISCALIZ|ACOMPANH/i.test(name)) || ''
+}
+
+function nupFromRead(read: DriveRead) {
+  for (const item of read.items ?? []) {
+    if (item.is_folder) continue
+    const found = nupFromName(item.name || '')
+    if (found) return found
+  }
+  return ''
+}
+
+function nupFromName(name: string) {
+  const match = name.match(/(?:^|\D)(\d{17})(?:\D|$)/)
+  if (!match?.[1]) return ''
+  const digits = match[1]
+  return `${digits.slice(0, 5)}.${digits.slice(5, 11)}/${digits.slice(11, 15)}-${digits.slice(15)}`
 }

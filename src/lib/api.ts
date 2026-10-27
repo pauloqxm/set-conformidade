@@ -214,11 +214,32 @@ export type DriveSource = {
   detected_kind: string | null
 }
 
+export type ChecklistMatch = {
+  template_id: string
+  template_name: string
+  module_id: string
+  title: string
+  folder_id: string
+  folder_name: string
+  folder_path: string
+}
+
 export type DriveRead = {
   ok?: boolean
   error?: string
   detected?: { area?: string; project?: string; kind?: string; instrument_title?: string }
   root?: { name?: string }
+  source_id?: string | null
+  items?: { name?: string; is_folder?: boolean }[]
+  matched_modules?: {
+    template_id?: string
+    template_name?: string
+    module_id?: string
+    module_title?: string
+    folder_id?: string
+    folder_name?: string
+    folder_path?: string
+  }[]
 }
 
 export async function driveStatus() {
@@ -269,6 +290,7 @@ export type ProcessInput = {
   responsible_name: string
   responsible_email: string
   drive_source_id?: string | null
+  matches?: ChecklistMatch[]
 }
 
 export async function deleteProcess(id: string) {
@@ -290,19 +312,53 @@ export async function saveProcess(input: ProcessInput, userId: string) {
     responsible_name: input.responsible_name,
     responsible_email: input.responsible_email,
     ...(input.drive_source_id ? { drive_source_id: input.drive_source_id } : {}),
+    ...(input.matches
+      ? {
+          checklist_template_id: input.matches[0]?.template_id ?? null,
+          checklist_module_id: input.matches[0]?.module_id ?? null,
+        }
+      : {}),
     updated_at: new Date().toISOString(),
   }
+  let processId = input.id
   if (input.id) {
     const { error } = await supabase.from('processes').update(payload).eq('id', input.id)
     fail(error)
-    return
+  } else {
+    const inserted = await supabase
+      .from('processes')
+      .insert({ ...payload, status: 'Cadastrado', created_by: userId })
+      .select('id')
+      .single()
+    fail(inserted.error)
+    if (!inserted.data?.id) throw new Error('Não foi possível salvar o processo.')
+    processId = inserted.data.id
   }
-  const { error } = await supabase.from('processes').insert({
-    ...payload,
-    status: 'Cadastrado',
-    created_by: userId,
-  })
+  if (processId && input.matches?.length) {
+    const links = input.matches.map((match) => ({
+      process_id: processId,
+      template_id: match.template_id,
+      module_id: match.module_id,
+      drive_folder_id: match.folder_id || '',
+      drive_folder_name: match.folder_name || '',
+      drive_folder_path: match.folder_path || '',
+      status: 'Vinculado',
+      updated_at: new Date().toISOString(),
+    }))
+    const linked = await supabase.from('process_checklists').upsert(links, { onConflict: 'process_id,module_id,drive_folder_id' })
+    fail(linked.error)
+  }
+  return processId
+}
+
+export async function loadModulePreview(moduleId: string) {
+  const { data, error } = await supabase
+    .from('checklist_template_items')
+    .select('id,item_code,verification,responsible,basis,ordinal')
+    .eq('module_id', moduleId)
+    .order('ordinal', { ascending: true })
   fail(error)
+  return (data ?? []) as { id: string; item_code: string | null; verification: string | null; responsible: string | null; basis: string | null }[]
 }
 
 export async function saveAssignment(input: {

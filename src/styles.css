@@ -364,6 +364,24 @@ th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spa
 .oknote { background: #e7f6ec; color: #216941; }
 .overlay { position: fixed; inset: 0; background: #102318c4; display: grid; place-items: center; padding: 20px; z-index: 20; }
 .dialog { width: min(920px, 100%); max-height: 90vh; overflow: auto; background: white; border-radius: 22px; padding: 22px; }
+.processDialog { width: min(920px, 100%); }
+.hierarchyBox { background: #f3faf6; border: 1px solid #d7eadc; border-radius: 16px; padding: 14px 16px 16px; margin-bottom: 16px; }
+.hierarchyTitle { color: #1d7549; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.hierarchyFlow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.hierarchyStep { display: inline-flex; align-items: center; gap: 8px; }
+.hierarchyNode { background: white; border: 1px solid #d5e6db; border-radius: 10px; padding: 8px 12px; font-weight: 800; color: #1d3b2c; }
+.hierarchyArrow { color: #8aa394; font-size: 18px; }
+.readonlyHint { font-weight: 500; color: #6d7f74; font-size: 12px; }
+.checkMatchBox { margin-top: 14px; border-radius: 12px; padding: 12px 14px; background: #f3faf5; border: 1px solid #d5eadc; }
+.checkMatchBox.warn { background: #fff8ee; border-color: #f3e0b8; }
+.checkMatchBox strong { display: block; color: #176b3a; }
+.checkMatchBox.warn strong { color: #8a5a12; }
+.checkMatchBox.warn span { display: block; margin-top: 4px; color: #8a6a3a; font-size: 13px; }
+.checkMatch small { color: #5f7366; font-size: 13px; }
+.checkMatch { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-top: 10px; }
+.checkMatch button { border: 1px solid #d7e3dc; background: white; border-radius: 999px; padding: 6px 10px; color: #365446; font-weight: 700; }
+.matchPreview { margin-top: 10px; max-height: 180px; overflow: auto; }
+.matchPreview p { margin: 6px 0; color: #365446; font-size: 13px; }
 
 .loginScene {
   min-height: 100vh;
