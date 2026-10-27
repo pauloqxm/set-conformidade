@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth/AuthProvider'
 import { Shell } from './components/Shell'
 import { AccessPage } from './pages/AccessPage'
+import { AreaPage } from './pages/AreaPage'
 import { AnalysisPage } from './pages/AnalysisPage'
 import { ChecklistsPage } from './pages/ChecklistsPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -31,6 +32,7 @@ export function App() {
         <Route path="solicitacoes" element={<RequestsPage />} />
         <Route path="manual" element={<ManualPage />} />
         <Route path="acessos" element={<AccessPage />} />
+        <Route path="coordenacoes/:area" element={<AreaPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

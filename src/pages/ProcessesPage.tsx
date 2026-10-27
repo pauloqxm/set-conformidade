@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { useAuth } from '../auth/AuthProvider'
 import { useWorkspace } from '../data/useWorkspace'
@@ -34,11 +34,35 @@ export function ProcessesPage() {
   const { session, profile } = useAuth()
   const { data, isLoading, error } = useWorkspace()
   const client = useQueryClient()
+  const [params, setParams] = useSearchParams()
   const drive = useQuery({ queryKey: ['drive-status'], queryFn: driveStatus, retry: false })
   const sources = useQuery({ queryKey: ['drive-sources'], queryFn: loadDriveSources, retry: false })
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
+
+  useEffect(() => {
+    const editId = params.get('editar')
+    if (!editId || !data) return
+    const process = data.processes.find((item) => item.id === editId)
+    const next = new URLSearchParams(params)
+    next.delete('editar')
+    setParams(next, { replace: true })
+    if (!process) return
+    setDraft({
+      id: process.id,
+      area: process.area || profile?.area || 'COEMP',
+      project_name: process.project_name || '',
+      kind: process.kind || '',
+      instrument_title: process.instrument_title || '',
+      nup: process.nup || '',
+      object: process.object || '',
+      process_stage: process.process_stage || '',
+      drive_folder_url: process.drive_folder_url || '',
+      responsible_name: process.responsible_name || profile?.full_name || '',
+      drive_source_id: process.drive_source_id ?? null,
+    })
+  }, [params, data, profile?.area, profile?.full_name, setParams])
 
   if (!canManage(profile)) return <Navigate to="/" replace />
   if (isLoading) return <p className="muted">Carregando processos...</p>

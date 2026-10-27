@@ -271,6 +271,11 @@ export type ProcessInput = {
   drive_source_id?: string | null
 }
 
+export async function deleteProcess(id: string) {
+  const { error } = await supabase.from('processes').delete().eq('id', id)
+  fail(error)
+}
+
 export async function saveProcess(input: ProcessInput, userId: string) {
   const payload = {
     area: input.area,

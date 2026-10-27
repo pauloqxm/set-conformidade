@@ -14,6 +14,7 @@ export function PendingPage() {
   const { data, isLoading, error } = useWorkspace()
   const [params, setParams] = useSearchParams()
   const project = params.get('projeto') ?? ''
+  const processo = params.get('processo') ?? ''
   const areaParam = params.get('area') ?? ''
   const [text, setText] = useState('')
   const [area, setArea] = useState(areaParam)
@@ -27,6 +28,7 @@ export function PendingPage() {
       const process = data.processes.find((row) => row.id === item.process_id)
       if (!process) return false
       if (project && projectName(process.project_name) !== project) return false
+      if (processo && item.process_id !== processo) return false
       if (area && process.area !== area) return false
       const itemKind = pendingKind(item.status, item.validated)
       if (kind && itemKind !== kind) return false
@@ -34,7 +36,7 @@ export function PendingPage() {
       const blob = `${process.nup ?? ''} ${process.project_name ?? ''} ${item.code ?? ''} ${item.finding ?? ''} ${item.criterion ?? ''}`.toLowerCase()
       return !text || blob.includes(text.toLowerCase())
     })
-  }, [data, project, area, kind, text])
+  }, [data, project, processo, area, kind, text])
 
   if (isLoading) return <p className="muted">Carregando pendências...</p>
   if (error || !data) return <p className="alert">{error instanceof Error ? error.message : 'Não foi possível carregar.'}</p>
@@ -54,9 +56,10 @@ export function PendingPage() {
           </p>
         </div>
       </div>
-      {project ? (
+      {project || processo ? (
         <p className="note">
-          Projeto: <b>{project}</b>{' '}
+          {project ? <>Projeto: <b>{project}</b> </> : null}
+          {processo ? <>Processo: <b>{data.processes.find((item) => item.id === processo)?.nup || 'selecionado'}</b> </> : null}
           <button className="ghost" type="button" onClick={() => setParams({})}>
             Ver todos
           </button>

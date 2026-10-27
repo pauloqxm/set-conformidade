@@ -7,6 +7,16 @@ export const AREAS = [
   { id: 'CODIP', label: 'Coordenadoria de Desenvolvimento Institucional e Planejamento', color: '#1d6b45' },
 ] as const
 
+export const COORDINATIONS = [
+  { id: 'COEMP', name: 'Coordenadoria de Empreendedorismo e Educação Profissional' },
+  { id: 'COESA', name: 'Coordenadoria de Economia Popular e Solidária e Arranjos Produtivos Locais' },
+  { id: 'COTRA', name: 'Coordenadoria do Trabalho e Renda' },
+  { id: 'COAFI', name: 'Coordenadoria Administrativo-Financeira' },
+  { id: 'ASCOI', name: 'Controle Interno e Ouvidoria' },
+  { id: 'CODIP', name: 'Coordenadoria de Desenvolvimento Institucional e Planejamento' },
+  { id: 'GABINETE', name: 'Gabinete' },
+] as const
+
 export const ITEM_STATUSES = [
   'Conforme',
   'Não conforme',

@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { useWorkspace } from '../data/useWorkspace'
 import { saveItem } from '../lib/api'
@@ -10,7 +11,12 @@ export function AnalysisPage() {
   const { session } = useAuth()
   const { data, isLoading, error } = useWorkspace()
   const client = useQueryClient()
-  const [processId, setProcessId] = useState('')
+  const [params] = useSearchParams()
+  const [processId, setProcessId] = useState(params.get('processo') ?? '')
+  useEffect(() => {
+    const requested = params.get('processo')
+    if (requested) setProcessId(requested)
+  }, [params])
   const [message, setMessage] = useState('')
 
   const items = useMemo(
