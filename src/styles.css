@@ -147,6 +147,48 @@ small { display: block; color: var(--muted); margin-top: 4px; }
 .sourceButtons { display: flex; gap: 6px; justify-content: flex-end; }
 .sourceButtons button { border: 1px solid #d7e3dc; background: white; border-radius: 999px; padding: 6px 10px; color: #365446; font-weight: 700; }
 .sourceButtons .danger { color: #b42318; border-color: #f3c7c3; }
+.sourceButtons .go { background: var(--green); color: white; border-color: transparent; }
+.checklistHero { max-width: 850px; margin: 0 auto 22px; }
+.checklistHero .driveHero > p { max-width: 640px; }
+.checklistActions { display: flex; justify-content: center; margin-top: 12px; }
+.checkReset { border: 1px solid #f3c7c3; background: #fff6f5; color: #b42318; border-radius: 10px; padding: 8px 14px; font-weight: 700; }
+.checkReset:disabled { opacity: .6; }
+.checklistMeta { margin-top: 14px; display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; color: #66796e; font-size: 12px; }
+.checklistMeta b { color: #224b34; }
+.checkCards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 16px; }
+.checkCards article { background: white; border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+.checkCards span { display: block; color: #7b8d82; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.checkCards strong { display: block; margin: 8px 0 6px; font-family: "Barlow Condensed", Inter, sans-serif; font-size: 40px; line-height: 1; color: #147047; }
+.checkCards p { margin: 0; color: #6d7f74; font-size: 13px; }
+.docList { display: grid; }
+.docRow { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid #e7eee9; }
+.wordMark { width: 38px; height: 38px; border-radius: 10px; background: #e8f4ec; color: #1e7247; font-weight: 900; display: grid; place-items: center; }
+.docRow small, .versionCard small, .moduleLine small { display: block; color: #6d7f74; }
+.fileState { border-radius: 99px; padding: 6px 10px; font-size: 11px; font-weight: 800; background: #eef3ef; color: #365446; white-space: nowrap; }
+.fileState.ok { background: #e7f6ec; color: #176b3a; }
+.fileState.warn { background: #fff4df; color: #8a5b0b; }
+.fileState.err { background: #fdecec; color: #8d3535; }
+.versionCard { padding: 12px 0; border-top: 1px solid #e7eee9; }
+.moduleLine { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 8px 0 0 8px; }
+.interpretDialog { width: min(1100px, 100%); }
+.dialogHead { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.dialogClose { border: 0; background: transparent; color: #365446; font-size: 28px; line-height: 1; }
+.interpretModules { display: grid; gap: 14px; margin-top: 16px; }
+.interpretModules section { border: 1px solid #dbe7df; border-radius: 16px; overflow: hidden; background: #fbfdfc; }
+.moduleHead { display: grid; grid-template-columns: minmax(180px, .7fr) minmax(220px, 1.3fr); gap: 16px; align-items: end; background: #edf7f1; padding: 14px 16px; }
+.moduleHead span, .originalBox span { display: block; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #698077; }
+.moduleHead h3 { margin: 4px 0; }
+.interpretModules details { border-top: 1px solid #e6eee9; background: white; }
+.interpretModules summary { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 10px; align-items: center; padding: 12px 16px; cursor: pointer; }
+.interpretModules summary b { color: #1d7045; }
+.interpretBody { display: grid; gap: 12px; padding: 0 16px 16px; }
+.originalBox { background: #f6f8f7; border-left: 4px solid #5b9675; padding: 10px 12px; border-radius: 8px; }
+.originalBox p { margin: 4px 0; }
+.interpretGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.interpretGrid.three { grid-template-columns: 1fr 1fr 1fr; }
+.progressDialog { width: min(560px, 100%); }
+.progressTrack { height: 8px; background: #edf2ef; border-radius: 99px; overflow: hidden; }
+.progressTrack i { display: block; height: 100%; background: #147047; }
 .headerGovText span, .headerAppText span, .loginKicker, .loginTitle span, .eyebrow {
   display: block;
   color: #137a44;
@@ -373,7 +415,7 @@ th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spa
 
 @media (max-width: 1100px) {
   .headerApp { display: none; }
-  .metrics, .cards, .dashMetrics, .dashCharts, .dashExtra { grid-template-columns: 1fr 1fr; }
+  .metrics, .cards, .dashMetrics, .dashCharts, .dashExtra, .checkCards { grid-template-columns: 1fr 1fr; }
   .dashMetrics { grid-template-columns: 1fr 1fr; }
   .pending, .approval, .loginScene { grid-template-columns: 1fr; }
   .loginBrandCopy h1 { font-size: 46px; }
@@ -399,7 +441,7 @@ th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spa
   .side { position: relative; height: auto; width: 100%; }
   .content header, .headerIdentity { align-items: flex-start; flex-direction: column; }
   .headerGovText strong { white-space: normal; }
-  .metrics, .filters, .grid, .pending, .accessGrid, .manualIntro, .dashMetrics, .dashCharts, .dashExtra, .donutWrap, .linkedPanel article { grid-template-columns: 1fr; }
+  .metrics, .filters, .grid, .pending, .accessGrid, .manualIntro, .dashMetrics, .dashCharts, .dashExtra, .donutWrap, .linkedPanel article, .checkCards, .docRow, .moduleHead, .interpretGrid, .interpretGrid.three { grid-template-columns: 1fr; }
   .driveHero form { flex-direction: column; }
   .approvalUser { flex-direction: column; }
 }
